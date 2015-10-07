@@ -1,6 +1,8 @@
-import uuid 
+import uuid
 import string
 import os.path
+
+from userbase.exceptions import UniqueError
 
 mapping = {
     196 : 'AE', 198 : 'AE', 214 : 'OE', 220 : 'UE', 223 : 'ss', 224 : 'a',
@@ -9,18 +11,18 @@ mapping = {
 
 def string2filename(s, path = None):
     """convert a string to a valid filename"""
-    
+
     from unicodedata import decomposition, normalize
 
     # TODO: make sure that s is unicode (add check and conversion)
-    
+
     s = s.strip()
     s = s.lower()
 
     # remove an eventual path
     s = s.replace("\\","/")
     _, s = os.path.split(s)
-    
+
     res = u''
     mkeys = mapping.keys()
     for c in s:
@@ -32,33 +34,33 @@ def string2filename(s, path = None):
             res = res + normalize('NFKD', c)
         else:
             res = res + c
-    
+
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in res if c in valid_chars)
     filename = filename.replace(" ","_")
-    
+
     # if path is not None we can check if there already is a file with that name
     if path is None:
         return filename
-        
+
     fullpath=os.path.join(path, filename)
     if not os.path.exists(fullpath):
         return filename
 
     # remove the extension
     root, ext = os.path.splitext(filename)
-        
+
     for idx in range(1,100):
         filename = "%s-%d%s" %(root, idx, ext)
         if not os.path.exists(os.path.join(path,filename)):
             return filename
-            
+
     for idx in range(1,100):
         u = unicode(uuid.uuid4())
         filename = "%s-%s%s" %(root, u, ext)
         if not os.path.exists(os.path.join(path,filename)):
             return filename
-        
+
     return None # we did not get a result, TODO: further checking
 
 class Hooks(object):
@@ -76,8 +78,14 @@ class Hooks(object):
         self.config = userbase.config
 
     def process_registration_user_data(self, user_data):
-        """process the incoming user data (usually from a form) and e.g. fill in username in case an email based 
+        """process the incoming user data (usually from a form) and e.g. fill in username in case an email based
         form is used"""
+
+        # check if user_id_field is unique
+        user_id_field = self.userbase.defaults['user_id_field']
+        if user_id_field in user_data:
+            if self.userbase.users.find({user_id_field : user_data[user_id_field]}).count() > 0:
+                raise UniqueError(user_id_field=user_id_field, user_id=user_data[user_id_field])
 
         if "username" not in user_data and self.config.user_id_field == "email":
             username = string2filename(user_data.get('fullname', str(uuid.uuid4())))
@@ -90,9 +98,9 @@ class Hooks(object):
             user_data['username'] = username
         if "password2" in user_data:
             del user_data['password2']
-        user_data['permissions'] = [] # you can set default permissions in your own hook 
+        user_data['permissions'] = [] # you can set default permissions in your own hook
         return user_data
-            
+
     def create_activation_code(self, user):
         """create an activation code. Default is a simple uuid"""
         return unicode(uuid.uuid4())

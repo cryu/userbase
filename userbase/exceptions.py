@@ -40,4 +40,16 @@ class PasswordIncorrect(LoginFailed):
 class UserNotActive(LoginFailed):
     """the user was not yet activated"""
 
+class UniqueError(UserbaseError):
+    """exception raised when user_id_field is not unique"""
 
+    def __init__(self, msg=u"User ID is not unique", user_id_field=None, user_id=None):
+        """initialize the error with a message"""
+        self.msg = msg
+        self.user_id_field= user_id_field
+        self.user_id = user_id
+
+    def __str__(self):
+        """return a printable representation"""
+        return """<UniqueError: %s (%s=%s)>""" \
+               % (self.msg, self.user_id_field, self.user_id)
