@@ -81,17 +81,17 @@ class PermissionSelectField(SelectMultipleField):
     option_widget = widgets.CheckboxInput()
 
     def __init__(self, label=None, validators=None, _form = None, **kwargs):
-        super(SelectMultipleField, self).__init__(label, validators, **kwargs)
+        super(SelectMultipleField, self).__init__(label, validators, _form=_form, **kwargs)
         self.form = _form
 
     def pre_validate(self, form):
-        if self.data:                                                                                                      
+        if self.data:
             values = list(c[0] for c in self.iter_choices())
             for d in self.data:
                 if d not in values:
                     raise ValueError(self.gettext(u"'%(value)s' is not a valid choice for this field") % dict(value=d))
-        
-    
+
+
     def iter_choices(self):
         if self.data is None:
             d = []
