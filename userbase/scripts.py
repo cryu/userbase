@@ -25,8 +25,9 @@ class UserManager(ScriptBase):
         data = vars(self.args)
         del data['config_file']
         if data['cmd'] == "add":
-            user = m.users()
-            user.update(data)
+            user_data = m.hooks.process_registration_user_data(data)
+            user = m.users.create()
+            user.update(user_data)
             user.save()
             user.activate()
             user.save()
